@@ -4,12 +4,15 @@
 ## Now also for Windows 11
 
 
-Woah  
+
+<img src="ic.png" style="width: 51px;">  
 
 
-![ic](ic.png)  
+<img src="recording2.gif" style="width: 600px">  
 
-![rec](recording.gif)  
+
+<img src="recording.gif" style="width: 250px;">  
+
 
 
 <hr>
