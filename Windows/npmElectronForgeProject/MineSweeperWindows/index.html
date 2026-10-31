@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Windows Minesweeper - Android Edition</title>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <style>
+    /* =========================================================================
+       1. RETRO WINDOWS 95/98 CORE STYLES & RESET
+       ========================================================================= */
+    * {
+      box-sizing: border-box;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent; /* Removes blue tap highlight */
+      margin: 0;
+      padding: 0;
+      font-family: 'Tahoma', 'Segoe UI', Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: #008080; /* Classic Win95 Teal Desktop */
+      min-height: 100vh;
+      width: 100vw;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Classic Bevel Utility Classes */
+    .bevel-out {
+      border-top: 3px solid #ffffff;
+      border-left: 3px solid #ffffff;
+      border-right: 3px solid #7b7a7b;
+      border-bottom: 3px solid #7b7a7b;
+      box-shadow: inset -1px -1px 0px #000000, inset 1px 1px 0px #dfdfdf;
+    }
+
+    .bevel-in {
+      border-top: 3px solid #7b7a7b;
+      border-left: 3px solid #7b7a7b;
+      border-right: 3px solid #ffffff;
+      border-bottom: 3px solid #ffffff;
+      box-shadow: inset -1px -1px 0px #dfdfdf, inset 1px 1px 0px #000000;
+    }
+
+    /* Draggable Window Container Base */
+    .window-dialog {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #c0c0c0;
+      padding: 6px;
+      z-index: 100;
+      touch-action: none;
+    }
+
+    .window-titlebar {
+      background: linear-gradient(90deg, #000080, #1084d0);
+      color: white;
+      padding: 6px 8px;
+      font-weight: bold;
+      font-size: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      letter-spacing: 0.5px;
+      cursor: move;
+      touch-action: none;
+    }
+
+    .titlebar-controls {
+      display: flex;
+      gap: 4px;
+    }
+
+    .titlebar-btn {
+      width: 22px;
+      height: 20px;
+      background: #c0c0c0;
+      border: 1px solid #ffffff;
+      border-right-color: #000;
+      border-bottom-color: #000;
+      font-size: 12px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #000;
+    }
+
+    .titlebar-btn:active {
+      border: 1px solid #000;
+      border-right-color: #fff;
+      border-bottom-color: #fff;
+    }
+
+    /* =========================================================================
+       2. START MENU / LAUNCHER (MOBILE ORIENTED)
+       ========================================================================= */
+    #start-menu {
+      width: 360px;
+      max-width: 95vw;
+    }
+
+    .menu-content {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      text-align: center;
+    }
+
+    .retro-heading {
+      font-family: 'VT323', monospace;
+      font-size: 42px;
+      color: #000080;
+      text-shadow: 2px 2px #ffffff;
+      letter-spacing: 2px;
+    }
+
+    .stats-card {
+      width: 100%;
+      background: #c0c0c0;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      font-weight: bold;
+      color: #000;
+    }
+
+    .diff-group {
+      width: 100%;
+      background: #c0c0c0;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: left;
+    }
+
+    .diff-group label {
+      font-size: 14px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .diff-group input[type="radio"] {
+      transform: scale(1.2);
+    }
+
+    .retro-btn {
+      width: 100%;
+      padding: 12px;
+      background: #c0c0c0;
+      font-weight: bold;
+      font-size: 15px;
+      color: #000;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .retro-btn:active {
+      border-top: 3px solid #7b7a7b;
+      border-left: 3px solid #7b7a7b;
+      border-right: 3px solid #ffffff;
+      border-bottom: 3px solid #ffffff;
+      padding: 13px 11px 11px 13px;
+    }
+
+    /* Android Branding Footer */
+    .android-footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 4px;
+      font-weight: bold;
+      font-size: 13px;
+      color: #444;
+      letter-spacing: 1px;
+    }
+
+    .android-icon {
+      width: 24px;
+      height: 24px;
+      fill: #3ddc84;
+    }
+
+    /* =========================================================================
+       3. RETRO MINESWEEPER GAME BOARD STYLING
+       ========================================================================= */
+    #game-container {
+      display: none;
+      width: fit-content;
+      max-width: 98vw;
+    }
+
+    .game-header {
+      padding: 8px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #c0c0c0;
+    }
+
+    /* Red LED Digital Displays */
+    .lcd-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .lcd-label {
+      font-size: 10px;
+      font-weight: bold;
+      color: #333;
+      text-transform: uppercase;
+    }
+
+    .lcd-display {
+      background: #000000;
+      color: #ff0000;
+      font-family: 'VT323', monospace;
+      font-size: 36px;
+      line-height: 30px;
+      padding: 3px 6px;
+      min-width: 66px;
+      text-align: right;
+      letter-spacing: 2px;
+      font-weight: bold;
+    }
+
+    /* Retro Smiley Control Button */
+    .smiley-btn {
+      width: 44px;
+      height: 44px;
+      background: #c0c0c0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      cursor: pointer;
+    }
+
+    .smiley-btn:active {
+      border-top: 2px solid #7b7a7b;
+      border-left: 2px solid #7b7a7b;
+      border-right: 2px solid #ffffff;
+      border-bottom: 2px solid #ffffff;
+    }
+
+    /* Board Grid Container */
+    #board-wrapper {
+      position: relative;
+    }
+
+    #board {
+      display: grid;
+      background: #7b7a7b;
+      padding: 4px;
+      gap: 0px;
+      user-select: none;
+      touch-action: manipulation;
+      overflow: auto;
+      max-width: 95vw;
+      max-height: 62vh;
+    }
+
+    /* Larger, Comfortable Cell Tiles for Mobile Touch */
+    .tile {
+      background: #c0c0c0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      cursor: pointer;
+      box-sizing: border-box;
+      flex-shrink: 0;
+    }
+
+    .tile.unrevealed {
+      border-top: 3px solid #ffffff;
+      border-left: 3px solid #ffffff;
+      border-right: 3px solid #7b7a7b;
+      border-bottom: 3px solid #7b7a7b;
+    }
+
+    .tile.revealed {
+      border: 1px solid #7b7a7b;
+      background: #c0c0c0;
+    }
+
+    .tile.exploded {
+      background: #ff0000 !important;
+    }
+
+    /* Standard Windows Minesweeper Number Colors */
+    .num-1 { color: #0000ff; }
+    .num-2 { color: #008000; }
+    .num-3 { color: #ff0000; }
+    .num-4 { color: #000080; }
+    .num-5 { color: #800000; }
+    .num-6 { color: #008080; }
+    .num-7 { color: #000000; }
+    .num-8 { color: #808080; }
+
+    /* Pause Obscuring Overlay */
+    #pause-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(192, 192, 192, 0.98);
+      z-index: 50;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    #pause-overlay.visible {
+      display: flex;
+    }
+
+    /* =========================================================================
+       4. PAUSE & INSTRUCTIONS DIALOG MODALS
+       ========================================================================= */
+    #pause-dialog {
+      width: 300px;
+      z-index: 150;
+    }
+
+    .pause-menu-content {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #instructions-dialog {
+      width: 340px;
+      max-width: 92vw;
+      z-index: 200;
+    }
+
+    .instructions-content {
+      padding: 14px;
+      max-height: 70vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: left;
+      font-size: 13px;
+      line-height: 1.45;
+      color: #000;
+    }
+
+    .instructions-section {
+      background: #ffffff;
+      padding: 10px;
+      border: 1px solid #7b7a7b;
+    }
+
+    .instructions-section h3 {
+      font-size: 14px;
+      color: #000080;
+      margin-bottom: 6px;
+      border-bottom: 1px solid #c0c0c0;
+      padding-bottom: 3px;
+    }
+
+    .instructions-section ul {
+      margin-left: 18px;
+    }
+
+    .instructions-section li {
+      margin-bottom: 4px;
+    }
+
+    /* =========================================================================
+       5. MOBILE CONTROLS & ACTION TOGGLE BAR
+       ========================================================================= */
+    .mobile-controls {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .mode-toggle-btn {
+      flex: 1;
+      padding: 12px 6px;
+      font-size: 14px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: #c0c0c0;
+      cursor: pointer;
+    }
+
+    .mode-toggle-btn.active {
+      background: #e0e0e0;
+      border-top: 2px solid #000;
+      border-left: 2px solid #000;
+      border-right: 2px solid #fff;
+      border-bottom: 2px solid #fff;
+      color: #000080;
+    }
+
+    .next-round-btn {
+      background: #c0c0c0;
+      color: #008000;
+      font-weight: bold;
+      padding: 12px 14px;
+      font-size: 14px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .next-round-btn.visible {
+      display: flex;
+    }
+
+    /* Audio Mute Button */
+    .audio-btn {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background: #c0c0c0;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =======================================================================
+       START MENU / LAUNCHER
+       ======================================================================= -->
+  <div id="start-menu" class="window-dialog bevel-out">
+    <div class="window-titlebar" id="start-menu-titlebar">
+      <span>Minesweeper Setup</span>
+      <div class="titlebar-controls">
+        <div onclick="showInstructions()" class="titlebar-btn" title="Instructions">?</div>
+        <div class="titlebar-btn">X</div>
+      </div>
+    </div>
+
+    <div class="menu-content">
+      <h1 class="retro-heading">MINE SWEEPER</h1>
+
+      <!-- Record Statistics Display -->
+      <div class="stats-card bevel-in">
+        <span>BEST STREAK: <span id="start-best-streak" style="color: #000080;">0</span></span>
+        <span>TOTAL WINS: <span id="start-total-wins" style="color: #008000;">0</span></span>
+      </div>
+
+      <div class="diff-group bevel-in">
+        <label>
+          <input type="radio" name="diff" value="beginner" checked>
+          Beginner (8x8, 9 Mines)
+        </label>
+        <label>
+          <input type="radio" name="diff" value="intermediate">
+          Intermediate (10x10, 16 Mines)
+        </label>
+        <label>
+          <input type="radio" name="diff" value="expert">
+          Expert (11x13, 26 Mines)
+        </label>
+      </div>
+
+      <button onclick="startGame()" class="retro-btn bevel-out">
+        <span>▶ PLAY GAME</span>
+      </button>
+
+      <!-- Android Head Logo -->
+      <div class="android-footer">
+        <span>FOR ANDROID</span>
+        <svg class="android-icon" viewBox="0 0 24 24">
+          <path d="M6 4.5L4.7 3.2c-.2-.2-.5-.2-.7 0s-.2.5 0 .7L5.4 5.3C3.9 6.5 3 8.3 3 10.3h18c0-2-0.9-3.8-2.4-5L19.9 4c.2-.2.2-.5 0-.7s-.5-.2-.7 0L17.9 4.5C16.3 3.5 14.2 3 12 3s-4.3.5-6 1.5zM8.5 8c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1zm7 0c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1zM3 11.5v1c0 4.7 3.8 8.5 8.5 8.5s8.5-3.8 8.5-8.5v-1H3z"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       RETRO GAME WINDOW
+       ======================================================================= -->
+  <div id="game-container" class="window-dialog bevel-out">
+    <!-- Window Titlebar with Pause [⏸], Help [?], and Close [X] Controls -->
+    <div class="window-titlebar" id="game-container-titlebar">
+      <span>Minesweeper</span>
+      <div class="titlebar-controls">
+        <div onclick="togglePause()" class="titlebar-btn" title="Pause Game">⏸</div>
+        <div onclick="showInstructions()" class="titlebar-btn" title="Instructions">?</div>
+        <div onclick="showStartMenu()" class="titlebar-btn" title="Quit to Menu">X</div>
+      </div>
+    </div>
+
+    <!-- LCD Counters & Control Header -->
+    <div class="game-header bevel-in">
+      <div class="lcd-group">
+        <span class="lcd-label">Mines</span>
+        <div id="mine-display" class="lcd-display">000</div>
+      </div>
+
+      <div class="lcd-group">
+        <span class="lcd-label">Streak</span>
+        <div id="streak-display" class="lcd-display">000</div>
+      </div>
+
+      <div id="smiley" onclick="resetGame(true)" class="smiley-btn bevel-out" title="Reset Board">🙂</div>
+
+      <div class="lcd-group">
+        <span class="lcd-label">Best</span>
+        <div id="best-display" class="lcd-display">000</div>
+      </div>
+
+      <div class="lcd-group">
+        <span class="lcd-label">Time</span>
+        <div id="timer-display" class="lcd-display">000</div>
+      </div>
+    </div>
+
+    <!-- Minefield Grid & Pause Wrapper -->
+    <div id="board-wrapper">
+      <div id="pause-overlay" class="bevel-in">
+        <div style="font-size: 32px; font-weight: bold; color: #000080; font-family: 'VT323', monospace;">
+          GAME PAUSED
+        </div>
+        <button onclick="togglePause()" class="retro-btn bevel-out" style="width: 160px; padding: 8px;">
+          RESUME
+        </button>
+      </div>
+
+      <div id="board"></div>
+    </div>
+
+    <!-- Mobile Touch Mode Switcher & Next Round Control -->
+    <div class="mobile-controls">
+      <button onclick="setTouchMode('dig')" id="btn-dig" class="mode-toggle-btn bevel-out active">
+        <span>⛏️ DIG</span>
+      </button>
+      <button onclick="setTouchMode('flag')" id="btn-flag" class="mode-toggle-btn bevel-out">
+        <span>🚩 FLAG</span>
+      </button>
+
+      <button id="btn-next-round" onclick="startNextRound()" class="next-round-btn bevel-out">
+        <span>NEXT ➔</span>
+      </button>
+
+      <button onclick="toggleAudio()" id="btn-audio" class="audio-btn bevel-out">
+        🔊
+      </button>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       PAUSE MENU POPUP DIALOG
+       ======================================================================= -->
+  <div id="pause-dialog" class="window-dialog bevel-out" style="display: none;">
+    <div class="window-titlebar" id="pause-dialog-titlebar">
+      <span>Minesweeper Paused</span>
+      <div class="titlebar-controls">
+        <div onclick="togglePause()" class="titlebar-btn">X</div>
+      </div>
+    </div>
+    <div class="pause-menu-content">
+      <button onclick="togglePause()" class="retro-btn bevel-out">
+        ▶ RESUME
+      </button>
+      <button onclick="resetGame(true)" class="retro-btn bevel-out">
+        🔄 RESTART ROUND
+      </button>
+      <button onclick="showInstructions()" class="retro-btn bevel-out">
+        ❓ HELP / INSTRUCTIONS
+      </button>
+      <button onclick="showStartMenu()" class="retro-btn bevel-out">
+        🚪 QUIT TO MAIN MENU
+      </button>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       INSTRUCTIONS / HOW TO PLAY MODAL DIALOG
+       ======================================================================= -->
+  <div id="instructions-dialog" class="window-dialog bevel-out" style="display: none;">
+    <div class="window-titlebar" id="instructions-dialog-titlebar">
+      <span>Minesweeper Instructions</span>
+      <div class="titlebar-controls">
+        <div onclick="hideInstructions()" class="titlebar-btn">X</div>
+      </div>
+    </div>
+    <div class="instructions-content">
+      <div class="instructions-section">
+        <h3>🎯 OBJECTIVE</h3>
+        <p>Uncover all non-mine tiles on the grid without detonating a single landmine!</p>
+      </div>
+
+      <div class="instructions-section">
+        <h3>🔢 NUMBERS EXPLAINED</h3>
+        <p>Revealed numbers (1–8) indicate exactly how many hidden mines are adjacent to that tile (including diagonals).</p>
+      </div>
+
+      <div class="instructions-section">
+        <h3>📱 TOUCH CONTROLS</h3>
+        <ul>
+          <li><b>Tap Tile:</b> Reveals (digs) a tile in <b>⛏️ DIG Mode</b> or flags a tile in <b>🚩 FLAG Mode</b>.</li>
+          <li><b>Mode Toggle:</b> Switch between ⛏️ DIG and 🚩 FLAG buttons at the bottom.</li>
+          <li><b>Long Press / Hold:</b> Quick-flags a tile in DIG mode.</li>
+          <li><b>Chording / Quick-Clear:</b> Tap a revealed number tile whose adjacent flag count matches its number to safely uncover surrounding unflagged tiles!</li>
+        </ul>
+      </div>
+
+      <div class="instructions-section">
+        <h3>💾 STREAK & SAVING</h3>
+        <ul>
+          <li>Winning a level increments your active win streak. Tap <b>NEXT ➔</b> to carry your streak into the next minefield.</li>
+          <li>The game continuously saves your active board state and high scores in LocalStorage so you can close and resume anytime!</li>
+        </ul>
+      </div>
+
+      <button onclick="hideInstructions()" class="retro-btn bevel-out" style="margin-top: 6px;">
+        OK / CLOSE
+      </button>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       VANILLA JAVASCRIPT LOGIC, PERSISTENCE & AUDIO
+       ======================================================================= -->
+  <script>
+    /* =========================================================================
+       0. PREVENT BROWSER CONTEXT VIBRATION & NATIVE MENU TRIGGER
+       ========================================================================= */
+    window.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      return false;
+    }, { passive: false });
+
+    /* =========================================================================
+       1. DRAGGABLE WINDOW SYSTEM
+       ========================================================================= */
+    function makeDraggable(windowElem, handleElem) {
+      let isDragging = false;
+      let startX, startY;
+      let initialLeft, initialTop;
+
+      handleElem.addEventListener('pointerdown', (e) => {
+        if (e.target.classList.contains('titlebar-btn')) return;
+
+        isDragging = true;
+        handleElem.setPointerCapture(e.pointerId);
+
+        const rect = windowElem.getBoundingClientRect();
+        windowElem.style.transform = 'none';
+        windowElem.style.left = `${rect.left}px`;
+        windowElem.style.top = `${rect.top}px`;
+
+        startX = e.clientX;
+        startY = e.clientY;
+        initialLeft = rect.left;
+        initialTop = rect.top;
+      });
+
+      handleElem.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+
+        const deltaX = e.clientX - startX;
+        const deltaY = e.clientY - startY;
+
+        let newLeft = initialLeft + deltaX;
+        let newTop = initialTop + deltaY;
+
+        const windowWidth = windowElem.offsetWidth;
+        const windowHeight = windowElem.offsetHeight;
+        const maxLeft = window.innerWidth - windowWidth;
+        const maxTop = window.innerHeight - windowHeight;
+
+        newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+        newTop = Math.max(0, Math.min(newTop, maxTop));
+
+        windowElem.style.left = `${newLeft}px`;
+        windowElem.style.top = `${newTop}px`;
+      });
+
+      const stopDrag = (e) => {
+        if (isDragging) {
+          isDragging = false;
+          try {
+            handleElem.releasePointerCapture(e.pointerId);
+          } catch(err) {}
+        }
+      };
+
+      handleElem.addEventListener('pointerup', stopDrag);
+      handleElem.addEventListener('pointercancel', stopDrag);
+    }
+
+    function centerElement(elem) {
+      elem.style.transform = 'translate(-50%, -50%)';
+      elem.style.left = '50%';
+      elem.style.top = '50%';
+    }
+
+    const startWindow = document.getElementById('start-menu');
+    const startTitlebar = document.getElementById('start-menu-titlebar');
+    makeDraggable(startWindow, startTitlebar);
+
+    const gameWindow = document.getElementById('game-container');
+    const gameTitlebar = document.getElementById('game-container-titlebar');
+    makeDraggable(gameWindow, gameTitlebar);
+
+    const pauseDialog = document.getElementById('pause-dialog');
+    const pauseTitlebar = document.getElementById('pause-dialog-titlebar');
+    makeDraggable(pauseDialog, pauseTitlebar);
+
+    const instructionsDialog = document.getElementById('instructions-dialog');
+    const instructionsTitlebar = document.getElementById('instructions-dialog-titlebar');
+    makeDraggable(instructionsDialog, instructionsTitlebar);
+
+    /* =========================================================================
+       2. GAME CONFIG & PERSISTENT STORAGE
+       ========================================================================= */
+    const CONFIGS = {
+      beginner: { rows: 8, cols: 8, mines: 9, tileSize: 48 },
+      intermediate: { rows: 10, cols: 10, mines: 16, tileSize: 44 },
+      expert: { rows: 13, cols: 11, mines: 26, tileSize: 40 }
+    };
+
+    const STORAGE_KEYS = {
+      BEST_STREAK: 'win95_minesweeper_best_streak',
+      TOTAL_WINS: 'win95_minesweeper_total_wins',
+      ACTIVE_GAME: 'win95_minesweeper_active_game'
+    };
+
+    let currentConfig = CONFIGS.beginner;
+    let selectedDiffKey = 'beginner';
+    let board = [];
+    let gameStarted = false;
+    let gameOver = false;
+    let gameWon = false;
+    let isPaused = false;
+    let timer = 0;
+    let timerInterval = null;
+    let flagsPlaced = 0;
+    let touchMode = 'dig';
+    let audioMuted = false;
+
+    let currentWinStreak = 0;
+    let bestWinStreak = parseInt(localStorage.getItem(STORAGE_KEYS.BEST_STREAK) || '0', 10);
+    let totalWins = parseInt(localStorage.getItem(STORAGE_KEYS.TOTAL_WINS) || '0', 10);
+
+    /* =========================================================================
+       3. HAPTICS & SYNTHESIZED WEB AUDIO
+       ========================================================================= */
+    let audioCtx = null;
+
+    function triggerHaptic(type = 'click') {
+      if (!navigator.vibrate) return;
+
+      if (type === 'click') {
+        navigator.vibrate(12); // Subtle Apple/mechanical mouse snap feel
+      } else if (type === 'explosion') {
+        navigator.vibrate([100, 50, 100]);
+      } else if (type === 'win') {
+        navigator.vibrate([40, 60, 40, 60, 80]);
+      }
+    }
+
+    /* Attach crisp mechanical haptic click to all retro buttons */
+    document.querySelectorAll('button, .retro-btn, .titlebar-btn, .smiley-btn, .mode-toggle-btn, .next-round-btn, .audio-btn').forEach(btn => {
+      btn.addEventListener('pointerdown', () => triggerHaptic('click'));
+    });
+
+    function initAudio() {
+      if (!audioCtx || audioCtx.state === 'closed') {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playSound(type) {
+      if (audioMuted) return;
+      initAudio(); // Always ensure audio context is active/resumed before playing
+      if (!audioCtx || audioCtx.state !== 'running') return;
+
+      const now = audioCtx.currentTime;
+
+      if (type === 'tap') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(200, now + 0.04);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.04);
+      }
+      else if (type === 'flag') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(800, now + 0.06);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.06);
+      }
+      else if (type === 'explosion') {
+        const bufferSize = audioCtx.sampleRate * 0.5;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(500, now);
+        filter.frequency.exponentialRampToValueAtTime(40, now + 0.5);
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.6, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        noise.start(now);
+        noise.stop(now + 0.5);
+      }
+      else if (type === 'win') {
+        const notes = [300, 400, 500, 700];
+        notes.forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(freq, now + i * 0.08);
+          gain.gain.setValueAtTime(0.15, now + i * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.08 + 0.15);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + i * 0.08);
+          osc.stop(now + i * 0.08 + 0.15);
+        });
+      }
+    }
+
+    function toggleAudio() {
+      audioMuted = !audioMuted;
+      if (!audioMuted) initAudio();
+      document.getElementById('btn-audio').innerText = audioMuted ? '🔇' : '🔊';
+    }
+
+    /* =========================================================================
+       4. PERSISTENT LOCALSTORAGE STATE ENGINE
+       ========================================================================= */
+    function updateMenuStatsUI() {
+      document.getElementById('start-best-streak').innerText = bestWinStreak;
+      document.getElementById('start-total-wins').innerText = totalWins;
+    }
+
+    function saveStats() {
+      localStorage.setItem(STORAGE_KEYS.BEST_STREAK, bestWinStreak.toString());
+      localStorage.setItem(STORAGE_KEYS.TOTAL_WINS, totalWins.toString());
+      updateMenuStatsUI();
+    }
+
+    function saveActiveGameToStorage() {
+      if (!gameStarted || gameOver || gameWon) {
+        localStorage.removeItem(STORAGE_KEYS.ACTIVE_GAME);
+        return;
+      }
+
+      const boardState = board.map(row => row.map(cell => ({
+        r: cell.row,
+        c: cell.col,
+        m: cell.isMine,
+        rev: cell.revealed,
+        f: cell.flagged,
+        n: cell.neighborMines
+      })));
+
+      const activeState = {
+        diffKey: selectedDiffKey,
+        timer: timer,
+        flagsPlaced: flagsPlaced,
+        currentWinStreak: currentWinStreak,
+        board: boardState
+      };
+
+      localStorage.setItem(STORAGE_KEYS.ACTIVE_GAME, JSON.stringify(activeState));
+    }
+
+    function clearActiveGameStorage() {
+      localStorage.removeItem(STORAGE_KEYS.ACTIVE_GAME);
+    }
+
+    function tryRestoreActiveGame() {
+      const savedData = localStorage.getItem(STORAGE_KEYS.ACTIVE_GAME);
+      if (!savedData) return false;
+
+      try {
+        const state = JSON.parse(savedData);
+        if (!state || !state.board || !CONFIGS[state.diffKey]) return false;
+
+        selectedDiffKey = state.diffKey;
+        currentConfig = CONFIGS[selectedDiffKey];
+        timer = state.timer || 0;
+        flagsPlaced = state.flagsPlaced || 0;
+        currentWinStreak = state.currentWinStreak || 0;
+        gameStarted = true;
+        gameOver = false;
+        gameWon = false;
+        isPaused = false;
+
+        startWindow.style.display = 'none';
+        centerElement(gameWindow);
+        gameWindow.style.display = 'block';
+
+        updateSmiley('🙂');
+        updateLCD('mine-display', currentConfig.mines - flagsPlaced);
+        updateLCD('timer-display', timer);
+        updateLCD('streak-display', currentWinStreak);
+        updateLCD('best-display', bestWinStreak);
+
+        rebuildBoardFromState(state.board);
+        startTimer();
+        return true;
+      } catch (err) {
+        console.error("Failed to restore saved game:", err);
+        clearActiveGameStorage();
+        return false;
+      }
+    }
+
+    /* =========================================================================
+       5. BOARD CREATION & RESTORATION
+       ========================================================================= */
+    function startGame() {
+      initAudio();
+      const selectedDiff = document.querySelector('input[name="diff"]:checked').value;
+      selectedDiffKey = selectedDiff;
+      currentConfig = CONFIGS[selectedDiff];
+
+      startWindow.style.display = 'none';
+      centerElement(gameWindow);
+      gameWindow.style.display = 'block';
+
+      currentWinStreak = 0;
+      resetGame(false);
+    }
+
+    function showStartMenu() {
+      initAudio();
+      stopTimer();
+      if (isPaused) unpauseGame();
+
+      gameWindow.style.display = 'none';
+      document.getElementById('pause-dialog').style.display = 'none';
+
+      centerElement(startWindow);
+      startWindow.style.display = 'block';
+      updateMenuStatsUI();
+    }
+
+    function resetGame(resetStreak = true) {
+      initAudio();
+      stopTimer();
+      if (isPaused) unpauseGame();
+
+      gameStarted = false;
+      gameOver = false;
+      gameWon = false;
+      flagsPlaced = 0;
+      timer = 0;
+
+      if (resetStreak) {
+        currentWinStreak = 0;
+      }
+
+      clearActiveGameStorage();
+
+      document.getElementById('btn-next-round').classList.remove('visible');
+      updateSmiley('🙂');
+      updateLCD('mine-display', currentConfig.mines);
+      updateLCD('timer-display', 0);
+      updateLCD('streak-display', currentWinStreak);
+      updateLCD('best-display', bestWinStreak);
+
+      createBoardGrid();
+    }
+
+    function startNextRound() {
+      resetGame(false);
+    }
+
+    function createBoardGrid() {
+      const boardElem = document.getElementById('board');
+      boardElem.innerHTML = '';
+      boardElem.style.gridTemplateColumns = `repeat(${currentConfig.cols}, ${currentConfig.tileSize}px)`;
+
+      board = [];
+
+      for (let r = 0; r < currentConfig.rows; r++) {
+        board[r] = [];
+        for (let c = 0; c < currentConfig.cols; c++) {
+          const tileElem = createTileElement(r, c, currentConfig.tileSize);
+
+          const cell = {
+            row: r,
+            col: c,
+            isMine: false,
+            revealed: false,
+            flagged: false,
+            neighborMines: 0,
+            elem: tileElem
+          };
+
+          attachTileEvents(cell);
+          boardElem.appendChild(tileElem);
+          board[r][c] = cell;
+        }
+      }
+    }
+
+    function rebuildBoardFromState(boardState) {
+      const boardElem = document.getElementById('board');
+      boardElem.innerHTML = '';
+      boardElem.style.gridTemplateColumns = `repeat(${currentConfig.cols}, ${currentConfig.tileSize}px)`;
+
+      board = [];
+
+      for (let r = 0; r < currentConfig.rows; r++) {
+        board[r] = [];
+        for (let c = 0; c < currentConfig.cols; c++) {
+          const sCell = boardState[r][c];
+          const tileElem = createTileElement(r, c, currentConfig.tileSize);
+
+          const cell = {
+            row: r,
+            col: c,
+            isMine: sCell.m,
+            revealed: sCell.rev,
+            flagged: sCell.f,
+            neighborMines: sCell.n,
+            elem: tileElem
+          };
+
+          if (cell.revealed) {
+            tileElem.classList.remove('unrevealed');
+            tileElem.classList.add('revealed');
+            if (cell.neighborMines > 0) {
+              tileElem.innerText = cell.neighborMines;
+              tileElem.classList.add(`num-${cell.neighborMines}`);
+            }
+          } else if (cell.flagged) {
+            tileElem.innerText = '🚩';
+          }
+
+          attachTileEvents(cell);
+          boardElem.appendChild(tileElem);
+          board[r][c] = cell;
+        }
+      }
+    }
+
+    function createTileElement(r, c, tileSize) {
+      const tileElem = document.createElement('div');
+      tileElem.className = 'tile unrevealed';
+      tileElem.style.width = `${tileSize}px`;
+      tileElem.style.height = `${tileSize}px`;
+      tileElem.style.fontSize = `${Math.floor(tileSize * 0.58)}px`;
+      return tileElem;
+    }
+
+    function attachTileEvents(cell) {
+      let longPressTimer = null;
+
+      cell.elem.addEventListener('pointerdown', (e) => {
+        if (gameOver || gameWon || isPaused) return;
+        updateSmiley('😮');
+        triggerHaptic('click');
+
+        longPressTimer = setTimeout(() => {
+          toggleFlag(cell);
+          longPressTimer = null;
+        }, 400);
+      });
+
+      cell.elem.addEventListener('pointerup', (e) => {
+        if (gameOver || gameWon || isPaused) return;
+        if (longPressTimer) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+          handleTileClick(cell);
+        } else {
+          updateSmiley('🙂');
+        }
+      });
+
+      cell.elem.addEventListener('pointerleave', () => {
+        if (longPressTimer) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+        }
+        if (!gameOver && !gameWon) updateSmiley('🙂');
+      });
+    }
+
+    function populateMines(safeRow, safeCol) {
+      let placed = 0;
+      while (placed < currentConfig.mines) {
+        const r = Math.floor(Math.random() * currentConfig.rows);
+        const c = Math.floor(Math.random() * currentConfig.cols);
+
+        if (Math.abs(r - safeRow) <= 1 && Math.abs(c - safeCol) <= 1) continue;
+
+        if (!board[r][c].isMine) {
+          board[r][c].isMine = true;
+          placed++;
+        }
+      }
+
+      for (let r = 0; r < currentConfig.rows; r++) {
+        for (let c = 0; c < currentConfig.cols; c++) {
+          if (board[r][c].isMine) continue;
+          let count = 0;
+          getNeighbors(r, c).forEach(n => {
+            if (n.isMine) count++;
+          });
+          board[r][c].neighborMines = count;
+        }
+      }
+    }
+
+    function getNeighbors(r, c) {
+      const neighbors = [];
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = r + dr, nc = c + dc;
+          if (nr >= 0 && nr < currentConfig.rows && nc >= 0 && nc < currentConfig.cols) {
+            neighbors.push(board[nr][nc]);
+          }
+        }
+      }
+      return neighbors;
+    }
+
+    /* =========================================================================
+       6. GAMEPLAY ACTIONS & PAUSE ENGINE
+       ========================================================================= */
+    function handleTileClick(cell) {
+      if (gameOver || gameWon || isPaused) return;
+
+      if (cell.revealed) {
+        chordTile(cell);
+        updateSmiley('🙂');
+        saveActiveGameToStorage();
+        return;
+      }
+
+      if (touchMode === 'flag') {
+        toggleFlag(cell);
+        updateSmiley('🙂');
+        return;
+      }
+
+      if (cell.flagged) {
+        updateSmiley('🙂');
+        return;
+      }
+
+      if (!gameStarted) {
+        gameStarted = true;
+        populateMines(cell.row, cell.col);
+        startTimer();
+      }
+
+      revealTile(cell);
+      if (!gameOver && !gameWon) {
+        updateSmiley('🙂');
+        saveActiveGameToStorage();
+      }
+    }
+
+    function toggleFlag(cell) {
+      if (cell.revealed || isPaused) return;
+
+      cell.flagged = !cell.flagged;
+      playSound('flag');
+
+      if (cell.flagged) {
+        flagsPlaced++;
+        cell.elem.innerText = '🚩';
+      } else {
+        flagsPlaced--;
+        cell.elem.innerText = '';
+      }
+
+      updateLCD('mine-display', currentConfig.mines - flagsPlaced);
+      saveActiveGameToStorage();
+    }
+
+    function revealTile(cell) {
+      if (cell.revealed || cell.flagged) return;
+
+      cell.revealed = true;
+      cell.elem.classList.remove('unrevealed');
+      cell.elem.classList.add('revealed');
+
+      if (cell.isMine) {
+        cell.elem.classList.add('exploded');
+        cell.elem.innerText = '💣';
+        playSound('explosion');
+        triggerHaptic('explosion');
+        handleGameOver(false);
+        return;
+      }
+
+      playSound('tap');
+
+      if (cell.neighborMines > 0) {
+        cell.elem.innerText = cell.neighborMines;
+        cell.elem.classList.add(`num-${cell.neighborMines}`);
+      } else {
+        getNeighbors(cell.row, cell.col).forEach(neighbor => {
+          if (!neighbor.revealed) revealTile(neighbor);
+        });
+      }
+
+      checkWinCondition();
+    }
+
+    function chordTile(cell) {
+      if (!cell.revealed || cell.neighborMines === 0) return;
+
+      const neighbors = getNeighbors(cell.row, cell.col);
+      const flaggedCount = neighbors.filter(n => n.flagged).length;
+
+      if (flaggedCount === cell.neighborMines) {
+        neighbors.forEach(n => {
+          if (!n.revealed && !n.flagged) {
+            revealTile(n);
+          }
+        });
+      }
+    }
+
+    function checkWinCondition() {
+      let unrevealedCount = 0;
+      for (let r = 0; r < currentConfig.rows; r++) {
+        for (let c = 0; c < currentConfig.cols; c++) {
+          if (!board[r][c].revealed) unrevealedCount++;
+        }
+      }
+
+      if (unrevealedCount === currentConfig.mines) {
+        handleGameOver(true);
+      }
+    }
+
+    function handleGameOver(won) {
+      stopTimer();
+      gameOver = !won;
+      gameWon = won;
+      clearActiveGameStorage();
+
+      if (won) {
+        currentWinStreak++;
+        totalWins++;
+
+        if (currentWinStreak > bestWinStreak) {
+          bestWinStreak = currentWinStreak;
+        }
+
+        saveStats();
+
+        updateLCD('streak-display', currentWinStreak);
+        updateLCD('best-display', bestWinStreak);
+
+        updateSmiley('😎');
+        playSound('win');
+        triggerHaptic('win');
+
+        document.getElementById('btn-next-round').classList.add('visible');
+
+        board.forEach(row => row.forEach(cell => {
+          if (cell.isMine && !cell.flagged) {
+            cell.flagged = true;
+            cell.elem.innerText = '🚩';
+          }
+        }));
+        updateLCD('mine-display', 0);
+      } else {
+        currentWinStreak = 0;
+        updateLCD('streak-display', 0);
+
+        updateSmiley('😵');
+        board.forEach(row => row.forEach(cell => {
+          if (cell.isMine && !cell.revealed) {
+            cell.elem.classList.remove('unrevealed');
+            cell.elem.classList.add('revealed');
+            if (!cell.flagged) cell.elem.innerText = '💣';
+          } else if (!cell.isMine && cell.flagged) {
+            cell.elem.innerText = '❌';
+          }
+        }));
+      }
+    }
+
+    function togglePause() {
+      initAudio();
+      if (!gameStarted || gameOver || gameWon) return;
+
+      if (isPaused) {
+        unpauseGame();
+      } else {
+        pauseGame();
+      }
+    }
+
+    function pauseGame() {
+      isPaused = true;
+      stopTimer();
+      document.getElementById('pause-overlay').classList.add('visible');
+
+      const pauseDlg = document.getElementById('pause-dialog');
+      centerElement(pauseDlg);
+      pauseDlg.style.display = 'block';
+    }
+
+    function unpauseGame() {
+      initAudio();
+      isPaused = false;
+      document.getElementById('pause-overlay').classList.remove('visible');
+      document.getElementById('pause-dialog').style.display = 'none';
+      if (gameStarted && !gameOver && !gameWon) {
+        startTimer();
+      }
+    }
+
+    /* =========================================================================
+       7. INSTRUCTIONS DIALOG ENGINE
+       ========================================================================= */
+    function showInstructions() {
+      initAudio();
+      if (gameStarted && !gameOver && !gameWon && !isPaused) {
+        pauseGame();
+      }
+      const instDlg = document.getElementById('instructions-dialog');
+      centerElement(instDlg);
+      instDlg.style.display = 'block';
+    }
+
+    function hideInstructions() {
+      initAudio();
+      document.getElementById('instructions-dialog').style.display = 'none';
+    }
+
+    /* =========================================================================
+       8. HUD CONTROLS & TIMERS
+       ========================================================================= */
+    function setTouchMode(mode) {
+      touchMode = mode;
+      playSound('tap');
+
+      document.getElementById('btn-dig').classList.toggle('active', mode === 'dig');
+      document.getElementById('btn-flag').classList.toggle('active', mode === 'flag');
+    }
+
+    function updateSmiley(face) {
+      document.getElementById('smiley').innerText = face;
+    }
+
+    function updateLCD(elemId, val) {
+      const clampedVal = Math.max(-99, Math.min(999, val));
+      const str = clampedVal < 0 
+        ? '-' + Math.abs(clampedVal).toString().padStart(2, '0')
+        : clampedVal.toString().padStart(3, '0');
+      document.getElementById(elemId).innerText = str;
+    }
+
+    function startTimer() {
+      stopTimer();
+      timerInterval = setInterval(() => {
+        timer++;
+        if (timer > 999) timer = 999;
+        updateLCD('timer-display', timer);
+        saveActiveGameToStorage();
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+    }
+
+    /* Initialize Application State on Page Load */
+    updateMenuStatsUI();
+    tryRestoreActiveGame();
+  </script>
+</body>
+</html>
